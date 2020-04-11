@@ -19,13 +19,29 @@ const Country = styled.span`
 const Name = styled.span``;
 const Subcountry = styled.span``;
 
+const CustomTag = props => {
+  const {label} = props
+  return (
+    <div>
+      <Country>
+        {label.country}
+      </Country>
+      <Name>
+        {label.name}
+      </Name>
+      <Subcountry>
+        {label.subcountry}
+      </Subcountry>
+    </div>
+  );
+}
+
 const App = () => {
 
   const [data, setData] = useState([]);
   const [value, onChange] = useState(null);
   const [next, setNext] = useState(false);
   const [fetching, setFetching] = useState(false);
-
 
   const loadOptions = async search => {
     try {
@@ -37,6 +53,7 @@ const App = () => {
       const responseJSON = await response.json();
       // const data = responseJSON.data.map(item => ({
       //   ...item,
+      //   label: item.name,
       //   value: item.geonameid
       // }));
       await setData(responseJSON.data);
@@ -49,37 +66,25 @@ const App = () => {
     }
   }
 
-  const handleChange = e => {
-    console.log(e)
-    // debugger;
-    // setSelected(selected.push(e))
-  }
-
   return (
     <div className="App">
      <button onClick={() => console.log(data)}>
        hey
      </button>
-      {/* {selected.map(item => {
-        return (
-          <p>
-            {item}
-          </p>
-        )
-      })} */}
-     <Select
+      <Select
         mode="multiple"
-        value={value}
         notFoundContent={fetching ? <Spin size="small" /> : null}
         filterOption={false}
         onSearch={debounce(loadOptions,800)}
         style={{ width: '100%' }}
-        onSelect={handleChange}
         autoClearSearchValue={false}
+        labelInValue={true}
+        optionLabelProp="label"
+        tagRender={CustomTag}
       >
-        {data.map((item, index) => {          
+        {data ? data.map((item, index) => {          
           return(
-            <StyledOption key={`${item.value}-${index}`} value={item.name}>
+            <StyledOption label={item} key={`${item.value}-${index}`} value={item.geonameid}>
               <Country>
                 {item.country}
               </Country>
@@ -91,9 +96,8 @@ const App = () => {
               </Subcountry>
             </StyledOption>
           )
-        })}
+        }) : null}
       </Select>
-
     </div>
   );
 }
