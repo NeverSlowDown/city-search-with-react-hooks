@@ -1,7 +1,7 @@
 import React, {useState} from 'react';
 import './App.css';
 import styled, {createGlobalStyle} from "styled-components";
-import {Select, Spin, notification} from "antd";
+import {Select, Spin, notification, Form, Button} from "antd";
 import 'antd/dist/antd.css';
 import debounce from "lodash.debounce";
 
@@ -96,17 +96,16 @@ const Loading = styled.div`
 
 const CustomTag = props => {
   const {label} = props;
-  console.log({props})
   return (
     <TagContainer closable={props.closable} onClick={props.onClose}>
       <Country>
-        {label ? label.country : "nop"}
+        {label.country}
       </Country>
       <Name>
-        {label ? label.name : "nop"}
+        {label.name}
       </Name>
       <Subcountry>
-        {label ? label.subcountry : "nop"}
+        {label.subcountry}
       </Subcountry>
     </TagContainer>
   );
@@ -125,14 +124,12 @@ const loadInitial = () => {
 const App = () => {
 
   const [data, setData] = useState([]);
-  const [value, onChange] = useState(null);
   const [initialData, setInitialData] = useState(loadInitial);
-  const [next, setNext] = useState(false);
   const [fetching, setFetching] = useState(false);
 
   const loadOptions = async search => {
     try {
-      const query = search ? next ? `${next}&filter=${search}` : `/cities/?filter=${search}&limit=10` : `/cities/?limit=10`;
+      const query = search ? `/cities/?filter=${search}&limit=10` : `/cities/?limit=10`;
       console.log({query});
       
       setFetching(true);
@@ -144,8 +141,6 @@ const App = () => {
       }));
       await setData(data);
       setFetching(false);
-      
-      // responseJSON.links.next && setNext(responseJSON.links.next)
     }
     catch(error) {
       setFetching(false);
@@ -156,6 +151,22 @@ const App = () => {
       console.error(error);
     }
   }
+
+
+  const onFinish = formData => {
+    console.log({formData})
+    notification.success({
+      message: 'Genial',
+      description: 'Los cambios se han guardado correctamente.',
+    });
+  }
+  const onFinishFailed = () => {
+    notification.error({
+      message: 'Error',
+      description: 'Los cambios no se han guardado, intente nuevamente.',
+    });
+  }
+  
 
   return (
     <div className="App">
@@ -174,35 +185,53 @@ const App = () => {
           </Loading>
         )
       }
-      <Select
-        mode="multiple"
-        filterOption={false}
-        onSearch={debounce(loadOptions,800)}
-        style={{ width: '100%' }}
-        autoClearSearchValue={false}
-        labelInValue={true}
-        optionLabelProp="label"
-        tagRender={CustomTag}
-        defaultValue={initialData}
+      <Form
+        name="select-city"
+        onFinish={onFinish}
+        onFinishFailed={onFinishFailed}
       >
-        {data.length > 0 ? data.map((item, index) => {          
-          return(
-            <StyledOption label={item} key={`${item.value}-${index}`} value={item.geonameid}>
-              <ItemContainer>
-                <Country>
-                  {item.label.country}
-                </Country>
-                <Name>
-                  {item.label.name}
-                </Name>
-                <Subcountry>
-                  {item.label.subcountry}
-                </Subcountry>
-              </ItemContainer>
-            </StyledOption>
-          )
-        }) : <StyledOption disabled key={`empty`}>Vacio, prueba buscando un pais, estado o ciudad</StyledOption>}
-      </Select>
+        <Form.Item
+          name="city"
+          rules={[{ required: true, message: 'Debe seleccionar al menos una opción' }]}
+        >
+          <Select
+            mode="multiple"
+            filterOption={false}
+            onSearch={debounce(loadOptions,800)}
+            style={{ width: '100%' }}
+            autoClearSearchValue={false}
+            labelInValue={true}
+            optionLabelProp="label"
+            tagRender={CustomTag}
+            defaultValue={initialData}
+          >
+            {data.length > 0 ? data.map((item, index) => {          
+              return(
+                <StyledOption label={item.label} key={`${item.value}-${index}`} value={item.geonameid}>
+                  <ItemContainer>
+                    <Country>
+                      {item.label.country}
+                    </Country>
+                    <Name>
+                      {item.label.name}
+                    </Name>
+                    <Subcountry>
+                      {item.label.subcountry}
+                    </Subcountry>
+                  </ItemContainer>
+                </StyledOption>
+              )
+            }) : <StyledOption disabled key={`empty`}>Vacio, prueba buscando un pais, estado o ciudad</StyledOption>}
+          </Select>
+        </Form.Item>
+
+        <Form.Item>
+          <Button type="primary" htmlType="submit">
+            Guardar
+          </Button>
+        </Form.Item>
+      </Form>
+      
      </ChooseContainer>
     </div>
   );
