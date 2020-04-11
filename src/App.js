@@ -1,4 +1,5 @@
 import React, {useState} from 'react';
+import * as R from "ramda"
 import './App.css';
 import styled, {createGlobalStyle} from "styled-components";
 import {Select, Spin, notification, Form, Button} from "antd";
@@ -126,6 +127,7 @@ const App = () => {
   const [data, setData] = useState([]);
   const [initialData, setInitialData] = useState(loadInitial);
   const [fetching, setFetching] = useState(false);
+  const [submiting, setSubmiting] = useState(false);
 
   const loadOptions = async search => {
     try {
@@ -153,19 +155,35 @@ const App = () => {
   }
 
 
-  const onFinish = formData => {
+  const onFinish = async formData => {
     console.log({formData})
-    notification.success({
-      message: 'Genial',
-      description: 'Los cambios se han guardado correctamente.',
-    });
+    // just taking the values from the "value" key (geonameid in this case) and create new list
+    const justValues = R.pluck("value",formData.city);
+    // convertion to string
+    const convertedToString = R.map(R.toString, justValues);
+    // then I create a new object making this strings as keys and assign true as its value for each element
+    const finalResult = await R.zipObj(convertedToString, R.repeat(true, convertedToString.length))
+    console.log({finalResult})
+
+    try {
+      setSubmiting(true);
+      const response = await fetch("http://localhost:3030/preferences/cities", {method: "PATCH", body: JSON.stringify(finalResult)})
+      console.log(response.json());
+      notification.success({
+        message: 'Genial',
+        description: 'Los cambios se han guardado correctamente.',
+      });
+    } catch(error) {
+      setSubmiting(false);
+      console.error(error);
+      notification.error({
+        message: 'Error',
+        description: 'Los cambios no se han guardado, intente nuevamente.',
+      });
+    }
+
   }
-  const onFinishFailed = () => {
-    notification.error({
-      message: 'Error',
-      description: 'Los cambios no se han guardado, intente nuevamente.',
-    });
-  }
+
   
 
   return (
@@ -188,7 +206,6 @@ const App = () => {
       <Form
         name="select-city"
         onFinish={onFinish}
-        onFinishFailed={onFinishFailed}
       >
         <Form.Item
           name="city"
