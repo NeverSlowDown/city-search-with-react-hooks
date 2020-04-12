@@ -110,9 +110,31 @@ const TagContainer = styled.div`
   margin: 5px;
   justify-content: center;
   cursor: pointer;
+  position: relative;
   transition: 0.3s ease;
   &:hover{
     opacity: 0.5;
+  }
+`;
+
+const Overlay = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.7);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transition: 0.3s ease;
+  color: white;
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  opacity: 0;
+  ${TagContainer}:hover & {
+    opacity: 1;
   }
 `;
 
@@ -227,6 +249,9 @@ const CustomTag = props => {
   const {label, closable, onClose} = props;
   return (
     <TagContainer closable={closable} onClick={onClose}>
+      <Overlay>
+        Eliminar
+      </Overlay>
       <Country>
         {label.country}
       </Country>
