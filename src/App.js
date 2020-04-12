@@ -26,6 +26,11 @@ const GlobalStyle = createGlobalStyle`
       transform: translateX(10px);
     }
   }
+  .ant-select-selector {
+    > span {
+      display: flex;
+    }
+  }
 `;
 
 const ChooseContainer = styled.section`
@@ -118,7 +123,6 @@ const App = () => {
   const [initialCities, setInitialCities] = useState([]);
 
   const loadInitial = async () => {
-
     try {
       setInitialLoading(true);
       const response = await fetch("http://localhost:3030/preferences/cities")
@@ -129,21 +133,23 @@ const App = () => {
       const mutatedResponse = R.reject(R.isNil, responseJSON.data);
       console.log({mutatedResponse});
       
-      await Promise.all(mutatedResponse.map(item=>fetch(`http://localhost:3030/cities/${item}`))).then(async responses =>
+      await Promise.all(mutatedResponse.map(item=>fetch(`http://localhost:3030/cities/${item}`)))
+      .then(async responses =>
         await Promise.all(responses.map(res => res.json()))
       ).then(responseJson => {
-        const initialMutated = responseJson.map(item => ({
+        // let's check if one of these couldn't load properly
+        R.any(R.has("error"), responseJson) && notification.error({
+          message: 'Error',
+          description: 'Una ciudad o varias no se han cargado correctamente',
+        });
+        // let's reject this errors
+        const cleanResponse = R.reject(R.has("error"), responseJson)
+        const initialMutated = cleanResponse.map(item => ({
           label: item,
           value: item.geonameid
         }));
         setInitialCities(R.concat(initialMutated, initialCities))
         setInitialLoading(false);
-      })
-      .catch(error => {
-        notification.error({
-          message: 'Error',
-          description: 'Una ciudad no ha cargado correctamente',
-        });
       })
     } catch(error) {
       setInitialLoading(false);
@@ -194,15 +200,21 @@ const App = () => {
     // just taking the values from the "value" key (geonameid in this case) and create new list
     const justValues = R.pluck("value",formData.city);
     // convertion to string
-    const convertedToString = R.map(R.toString, justValues);
+    console.log({justValues})
+    const convertedToString = R.map(item => !R.is(String, item) ? R.toString(item) : item, justValues);
+    console.log({convertedToString})
+
     // then I create a new object making this strings as keys and assign true as its value for each element
-    const finalResult = await R.zipObj(convertedToString, R.repeat(true, convertedToString.length))
-    console.log({finalResult})
+    const finalResult = R.zipObj(convertedToString, R.repeat(true, convertedToString.length))
+    // console.log({dataObject})
+    // const finalResult = R.toString(dataObject);
+
+    console.log("el final", finalResult)
 
     try {
       setSubmiting(true);
-      const response = await fetch("http://localhost:3030/preferences/cities", {method: "PATCH", body: JSON.stringify(finalResult),  headers: {"Content-type": "application/json; charset=UTF-8"}})
-      console.log(response.json());
+      await fetch("http://localhost:3030/preferences/cities", {method: "PATCH", body: JSON.stringify(finalResult),  headers: {"Content-type": "application/json"}})
+      setSubmiting(false);      
       notification.success({
         message: 'Genial',
         description: 'Los cambios se han guardado correctamente.',
@@ -283,7 +295,7 @@ const App = () => {
               </Form.Item>
 
               <Form.Item>
-                <Button type="primary" htmlType="submit">
+                <Button loading={submiting} type="primary" htmlType="submit">
                   Guardar
                 </Button>
               </Form.Item>
