@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import * as R from "ramda"
 import './App.css';
 import styled, {createGlobalStyle} from "styled-components";
@@ -112,22 +112,56 @@ const CustomTag = props => {
   );
 }
 
-const loadInitial = () => {
-  // const initial = [{"country":"Djibouti","geonameid":225284,"name":"'Ali Sabieh","subcountry":"Ali Sabieh"},{"country":"Netherlands","geonameid":2747364,"name":"'s-Gravenzande","subcountry":"South Holland"},{"country":"Netherlands","geonameid":2747351,"name":"'s-Hertogenbosch","subcountry":"North Brabant"},{"country":"Palestinian Territory","geonameid":281165,"name":"‘Abasān al Kabīrah","subcountry":"Gaza Strip"},{"country":"Iraq","geonameid":99738,"name":"‘Afak","subcountry":"Al Qādisīyah"},{"country":"Saudi Arabia","geonameid":110250,"name":"‘Afīf","subcountry":"Ar Riyāḑ"},{"country":"Syria","geonameid":174186,"name":"‘Afrīn","subcountry":"Aleppo"},{"country":"Israel","geonameid":295739,"name":"‘Afula ‘Illit","subcountry":"Northern District"},{"country":"Algeria","geonameid":2508157,"name":"‘Aïn el Hadjel","subcountry":"Mʼsila"},{"country":"Iran","geonameid":144443,"name":"‘Ajab Shīr","subcountry":"East Azerbaijan"}]
-
-  // const initialMutated = initial.map(item => ({
-  //   label: item,
-  //   value: item.geonameid
-  // }));
-  // return initialMutated;
-}
-
 const App = () => {
 
+  const [initialLoading, setInitialLoading] = useState(false);
+  const [initialCities, setInitialCities] = useState([]);
+
+  const loadInitial = async () => {
+
+    try {
+      setInitialLoading(true);
+      const response = await fetch("http://localhost:3030/preferences/cities")
+      const responseJSON = await response.json();
+      console.log({responseJSON});
+
+      // I see that there is some null stuff coming from this GET, let's remove it
+      const mutatedResponse = R.reject(R.isNil, responseJSON.data);
+      console.log({mutatedResponse});
+      
+      await Promise.all(mutatedResponse.map(item=>fetch(`http://localhost:3030/cities/${item}`))).then(async responses =>
+        await Promise.all(responses.map(res => res.json()))
+      ).then(responseJson => {
+        const initialMutated = responseJson.map(item => ({
+          label: item,
+          value: item.geonameid
+        }));
+        setInitialCities(R.concat(initialMutated, initialCities))
+        setInitialLoading(false);
+      })
+      .catch(error => {
+        notification.error({
+          message: 'Error',
+          description: 'Una ciudad no ha cargado correctamente',
+        });
+      })
+    } catch(error) {
+      setInitialLoading(false);
+      console.error(error);
+      notification.error({
+        message: 'Error',
+        description: 'No se han podido cargar los datos iniciales, intente nuevamente',
+      });
+    }
+  }
+  
   const [data, setData] = useState([]);
-  const [initialData, setInitialData] = useState(loadInitial);
   const [fetching, setFetching] = useState(false);
   const [submiting, setSubmiting] = useState(false);
+
+  useEffect(() => {
+    loadInitial()
+  }, [])
 
   const loadOptions = async search => {
     try {
@@ -167,7 +201,7 @@ const App = () => {
 
     try {
       setSubmiting(true);
-      const response = await fetch("http://localhost:3030/preferences/cities", {method: "PATCH", body: JSON.stringify(finalResult)})
+      const response = await fetch("http://localhost:3030/preferences/cities", {method: "PATCH", body: JSON.stringify(finalResult),  headers: {"Content-type": "application/json; charset=UTF-8"}})
       console.log(response.json());
       notification.success({
         message: 'Genial',
@@ -191,65 +225,73 @@ const App = () => {
      <button onClick={() => console.log(data)}>
        la data
      </button>
-     <button onClick={() => console.log(initialData)}>
+     <button onClick={() => console.log(initialCities)}>
        initial
      </button>
+
      
      <GlobalStyle />
-     <ChooseContainer>
-      {fetching && (
+     {initialLoading ? (
           <Loading>
             <Spin size="small" />
           </Loading>
-        )
-      }
-      <Form
-        name="select-city"
-        onFinish={onFinish}
-      >
-        <Form.Item
-          name="city"
-          rules={[{ required: true, message: 'Debe seleccionar al menos una opción' }]}
-        >
-          <Select
-            mode="multiple"
-            filterOption={false}
-            onSearch={debounce(loadOptions,800)}
-            style={{ width: '100%' }}
-            autoClearSearchValue={false}
-            labelInValue={true}
-            optionLabelProp="label"
-            tagRender={CustomTag}
-            defaultValue={initialData}
-          >
-            {data.length > 0 ? data.map((item, index) => {          
-              return(
-                <StyledOption label={item.label} key={`${item.value}-${index}`} value={item.geonameid}>
-                  <ItemContainer>
-                    <Country>
-                      {item.label.country}
-                    </Country>
-                    <Name>
-                      {item.label.name}
-                    </Name>
-                    <Subcountry>
-                      {item.label.subcountry}
-                    </Subcountry>
-                  </ItemContainer>
-                </StyledOption>
+        ) : 
+          <ChooseContainer>
+            {fetching && (
+                <Loading>
+                  <Spin size="small" />
+                </Loading>
               )
-            }) : <StyledOption disabled key={`empty`}>Vacio, prueba buscando un pais, estado o ciudad</StyledOption>}
-          </Select>
-        </Form.Item>
+            }
+            <Form
+              name="select-city"
+              onFinish={onFinish}
+            >
+              <Form.Item
+                name="city"
+                rules={[{ required: true, message: 'Debe seleccionar al menos una opción' }]}
+              >
+                <Select
+                  mode="multiple"
+                  filterOption={false}
+                  onSearch={debounce(loadOptions,800)}
+                  style={{ width: '100%' }}
+                  autoClearSearchValue={false}
+                  labelInValue={true}
+                  optionLabelProp="label"
+                  tagRender={CustomTag}
+                  defaultValue={initialCities}
+                >
+                  {data.length > 0 ? data.map((item, index) => {          
+                    return(
+                      <StyledOption label={item.label} key={`${item.value}-${index}`} value={item.geonameid}>
+                        <ItemContainer>
+                          <Country>
+                            {item.label.country}
+                          </Country>
+                          <Name>
+                            {item.label.name}
+                          </Name>
+                          <Subcountry>
+                            {item.label.subcountry}
+                          </Subcountry>
+                        </ItemContainer>
+                      </StyledOption>
+                    )
+                  }) : <StyledOption disabled key={`empty`}>Vacio, prueba buscando un pais, estado o ciudad</StyledOption>}
+                </Select>
+              </Form.Item>
 
-        <Form.Item>
-          <Button type="primary" htmlType="submit">
-            Guardar
-          </Button>
-        </Form.Item>
-      </Form>
-      
-     </ChooseContainer>
+              <Form.Item>
+                <Button type="primary" htmlType="submit">
+                  Guardar
+                </Button>
+              </Form.Item>
+            </Form>
+            
+          </ChooseContainer>
+        
+      }
     </div>
   );
 }
