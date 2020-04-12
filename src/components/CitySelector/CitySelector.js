@@ -51,8 +51,9 @@ const ChooseContainer = styled.div`
   display: flex;
   flex-wrap: wrap;
   width: 100%;
-  max-width: 850px;
-  min-height: 550px;
+  max-width: 870px;
+  height: 550px;
+  overflow: hidden;
 `;
 
 const StyledForm = styled(Form)`
@@ -65,6 +66,8 @@ const StyledForm = styled(Form)`
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  overflow-y: auto;
+  height: 100%;
   .btn-save {
     background: #982bba;
     background: linear-gradient(45deg,  #982bba 0%,#f26576 100%);
@@ -156,8 +159,67 @@ const ImageContainer = styled.figure`
   align-items: center;
   justify-content: center;
   margin-left: 20px;
+  align-self: center;
+  position: relative;
+  animation: fadeUp 0.5s ease;
+  margin-bottom: 0;
   img {
     width: 320px;
+    position: relative;
+    z-index: 3;
+  }
+  @keyframes fadeUp {
+    0%{
+      transform: translateY(10px);
+      opacity: 0;
+    }
+    100% {
+      transform: translateY(0px);
+      opacity: 1;
+    }
+  }
+`;
+
+const LoadingText = styled.span`
+  color: white;
+  font-size: 10px;
+  text-transform: uppercase;
+  position: absolute;
+  z-index: 2;
+  top: -50px;
+  letter-spacing: 5px;
+  transition: 0.5s 0.5s ease;
+  opacity: ${props => props.initialLoading ? 0.7 : 0};
+  transform: translateY(${props => props.initialLoading ? "0" : "10px"});
+`;
+
+const Gradient = styled.div`
+  &:after {
+    content: "";
+    display: flex;
+    background: linear-gradient(0deg,#982bba 0%,transparent 100%);
+    height: 100%;
+    width: 100%;
+    transition: 1s 0.5s ease;
+    animation: ${props => props.initialLoading && "light 1s ease infinite"};
+    transform: ${props => props.initialLoading ? "translateY(0)" : "translateY(100%)"};
+  }
+  width: 210px;
+  height: 220px;
+  position: absolute;
+  top: -110px;
+  overflow: hidden;
+  transition: 1s ease;
+  @keyframes light {
+    0%{
+      opacity: 0.5;
+    }
+    50% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0.5;
+    }
   }
 `;
 
@@ -368,6 +430,10 @@ const CitySelector = () => {
            
         </StyledForm>
         <ImageContainer>
+          <LoadingText initialLoading={initialLoading}>
+            Cargando
+          </LoadingText>
+          <Gradient initialLoading={initialLoading} />
           <img src={Image} alt="just-a-decorative-image" />
         </ImageContainer>
       </ChooseContainer>
