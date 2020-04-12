@@ -30,6 +30,10 @@ const GlobalStyle = createGlobalStyle`
       display: flex;
     }
   }
+  .ant-form-item-control-input-content {
+    display: flex;
+    align-items: center;
+  }
 `;
 
 const CitySelectorContainer = styled.section`
@@ -42,17 +46,25 @@ const ChooseContainer = styled.div`
   position: relative;
   background: #2f0c6a;
   padding: 20px;
+  border-radius: 5px;
   box-shadow: 0px 15px 30px rgba(0,0,0,0.6);
   display: flex;
   flex-wrap: wrap;
   width: 100%;
-  max-width: 800px;
+  max-width: 850px;
   min-height: 550px;
   .btn-save {
-    background: #4ce4e7
+    background: #982bba;
+    background: linear-gradient(45deg,  #982bba 0%,#f26576 100%);
+    color: white;
+    border: none;
+    margin: 0 auto;
   }
   .form-city {
-    flex: 1 1 50%
+    flex: 1 1 50%;
+    background: white;
+    padding: 20px;
+    border-radius: 5px;
   }
 `;
 
@@ -114,16 +126,19 @@ const Subcountry = styled.span`
 
 const Loading = styled.div`
   display: flex;
-  position: absolute;
-  right: 0;
   z-index: 1;
+  ${props => props.absolute && `
+    position: absolute;
+    right: 5px;
+  `}
 `;
 
 const ImageContainer = styled.figure`
-  flex: 1 1 50%;
+  flex: 1 1 30%;
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-left: 20px;
   img {
     width: 320px;
   }
@@ -279,68 +294,75 @@ const CitySelector = () => {
   return (
     <CitySelectorContainer>
      <GlobalStyle />
-     {initialLoading ? (
-          <Loading>
-            <Spin size="small" />
-          </Loading>
-        ) : 
-          <ChooseContainer>
-            {fetching && (
-                <Loading>
-                  <Spin size="small" />
-                </Loading>
-              )
-            }
-            <Form
-              className="form-city"
-              name="select-city"
-              onFinish={onFinish}
-            >
-              <Form.Item name="city">
-                <Select
-                  mode="multiple"
-                  filterOption={false}
-                  onSearch={debounce(loadOptions,800)}
-                  style={{ width: '100%' }}
-                  autoClearSearchValue={false}
-                  labelInValue={true}
-                  optionLabelProp="label"
-                  tagRender={CustomTag}
-                  defaultValue={initialCities}
-                  onDeselect={handleDeselect}
-                  onSelect={handleSelect}
-                >
-                  {data.length > 0 ? data.map((item, index) => {          
-                    return(
-                      <StyledOption label={item.label} key={`${item.value}-${index}`} value={item.geonameid}>
-                        <ItemContainer>
-                          <Country>
-                            {item.label.country}
-                          </Country>
-                          <Name>
-                            {item.label.name}
-                          </Name>
-                          <Subcountry>
-                            {item.label.subcountry}
-                          </Subcountry>
-                        </ItemContainer>
-                      </StyledOption>
+      <ChooseContainer>
+        <Form
+          className="form-city"
+          name="select-city"
+          onFinish={onFinish}
+        >
+          {initialLoading ? 
+            (
+              <Loading>
+                <Spin size="small" />
+              </Loading>
+            )
+            :
+            (
+              <>
+                <Form.Item name="city">
+                 {fetching && (
+                      <Loading absolute>
+                        <Spin size="small" />
+                      </Loading>
                     )
-                  }) : <StyledOption disabled key={`empty`}>Vacio, prueba buscando un pais, estado o ciudad</StyledOption>}
-                </Select>
-              </Form.Item>
+                  }
+                  <Select
+                    mode="multiple"
+                    filterOption={false}
+                    onSearch={debounce(loadOptions,800)}
+                    style={{ width: '100%' }}
+                    autoClearSearchValue={false}
+                    labelInValue={true}
+                    optionLabelProp="label"
+                    tagRender={CustomTag}
+                    defaultValue={initialCities}
+                    onDeselect={handleDeselect}
+                    onSelect={handleSelect}
+                  >
+                    {data.length > 0 ? data.map((item, index) => {          
+                      return(
+                        <StyledOption label={item.label} key={`${item.value}-${index}`} value={item.geonameid}>
+                          <ItemContainer>
+                            <Country>
+                              {item.label.country}
+                            </Country>
+                            <Name>
+                              {item.label.name}
+                            </Name>
+                            <Subcountry>
+                              {item.label.subcountry}
+                            </Subcountry>
+                          </ItemContainer>
+                        </StyledOption>
+                      )
+                    }) : <StyledOption disabled key={`empty`}>Vacio, prueba buscando un pais, estado o ciudad</StyledOption>}
+                  </Select>
+                </Form.Item>
 
-              <Form.Item>
-                <Button className="btn-save" loading={submiting} type="primary" htmlType="submit">
-                  Guardar
-                </Button>
-              </Form.Item>
-            </Form>
-            <ImageContainer>
-              <img src={Image} alt="just-a-decorative-image" />
-            </ImageContainer>
-          </ChooseContainer>
-      }
+                <Form.Item>
+                  <Button className="btn-save" loading={submiting} type="primary" htmlType="submit">
+                    Guardar
+                  </Button>
+                </Form.Item>
+              </>
+            )
+          }
+        </Form>
+        <ImageContainer>
+          <img src={Image} alt="just-a-decorative-image" />
+        </ImageContainer>
+      </ChooseContainer>
+      
     </CitySelectorContainer>
   );
 }
