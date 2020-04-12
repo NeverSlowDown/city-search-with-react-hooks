@@ -213,15 +213,27 @@ const App = () => {
 
     try {
       setSubmiting(true);
-      await fetch("http://localhost:3030/preferences/cities", {method: "PATCH", body: JSON.stringify(finalResult),  headers: {"Content-type": "application/json"}})
+      const response = await fetch("http://localhost:3030/preferences/cities", {method: "PATCH", body: JSON.stringify(finalResult),  headers: {"Content-type": "application/json"}})
       setSubmiting(false);      
+      // const data = await response.json();
+      await console.log({response})
+      // console.log({data})
+
+      await response.ok ?
       notification.success({
         message: 'Genial',
         description: 'Los cambios se han guardado correctamente.',
+      })
+      :
+      notification.error({
+        message: 'Error',
+        description: 'Los cambios no se han guardado, intente nuevamente.',
       });
+      // return data;
     } catch(error) {
       setSubmiting(false);
       console.error(error);
+      console.log({data})
       notification.error({
         message: 'Error',
         description: 'Los cambios no se han guardado, intente nuevamente.',
