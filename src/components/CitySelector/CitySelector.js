@@ -53,6 +53,18 @@ const ChooseContainer = styled.div`
   width: 100%;
   max-width: 850px;
   min-height: 550px;
+`;
+
+const StyledForm = styled(Form)`
+  flex: ${props => props.initialLoading ? 0 : "1 1 50%"};
+  background: white;
+  overflow: hidden;
+  padding: ${props => props.initialLoading ? "0 !important" : "20px"};
+  transition: 0.5s ease;
+  border-radius: 5px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
   .btn-save {
     background: #982bba;
     background: linear-gradient(45deg,  #982bba 0%,#f26576 100%);
@@ -60,11 +72,16 @@ const ChooseContainer = styled.div`
     border: none;
     margin: 0 auto;
   }
-  .form-city {
-    flex: 1 1 50%;
-    background: white;
-    padding: 20px;
-    border-radius: 5px;
+  .city-input {
+    transform: translateY(10px);
+    opacity: 0;
+    animation: fadeIn 0.5s 0.5s ease forwards;
+    @keyframes fadeIn {
+      100% {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
   }
 `;
 
@@ -163,7 +180,7 @@ const CustomTag = props => {
 
 const CitySelector = () => {
   
-  const [initialLoading, setInitialLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [initialCities, setInitialCities] = useState([]);
   const [chosenOptions, setChosenOptions] = useState([]);
 
@@ -295,69 +312,61 @@ const CitySelector = () => {
     <CitySelectorContainer>
      <GlobalStyle />
       <ChooseContainer>
-        <Form
-          className="form-city"
+        <StyledForm
           name="select-city"
           onFinish={onFinish}
+          initialLoading={initialLoading}
         >
-          {initialLoading ? 
-            (
-              <Loading>
-                <Spin size="small" />
-              </Loading>
-            )
-            :
-            (
-              <>
-                <Form.Item name="city">
-                 {fetching && (
-                      <Loading absolute>
-                        <Spin size="small" />
-                      </Loading>
-                    )
-                  }
-                  <Select
-                    mode="multiple"
-                    filterOption={false}
-                    onSearch={debounce(loadOptions,800)}
-                    style={{ width: '100%' }}
-                    autoClearSearchValue={false}
-                    labelInValue={true}
-                    optionLabelProp="label"
-                    tagRender={CustomTag}
-                    defaultValue={initialCities}
-                    onDeselect={handleDeselect}
-                    onSelect={handleSelect}
-                  >
-                    {data.length > 0 ? data.map((item, index) => {          
-                      return(
-                        <StyledOption label={item.label} key={`${item.value}-${index}`} value={item.geonameid}>
-                          <ItemContainer>
-                            <Country>
-                              {item.label.country}
-                            </Country>
-                            <Name>
-                              {item.label.name}
-                            </Name>
-                            <Subcountry>
-                              {item.label.subcountry}
-                            </Subcountry>
-                          </ItemContainer>
-                        </StyledOption>
-                      )
-                    }) : <StyledOption disabled key={`empty`}>Vacio, prueba buscando un pais, estado o ciudad</StyledOption>}
-                  </Select>
-                </Form.Item>
+          {!initialLoading && (
+            <Form.Item className="city-input" name="city">
+              {fetching && (
+                  <Loading absolute>
+                    <Spin size="small" />
+                  </Loading>
+                )
+              }
+              <Select
+                mode="multiple"
+                filterOption={false}
+                onSearch={debounce(loadOptions,800)}
+                style={{ width: '100%' }}
+                autoClearSearchValue={false}
+                labelInValue={true}
+                optionLabelProp="label"
+                tagRender={CustomTag}
+                defaultValue={initialCities}
+                onDeselect={handleDeselect}
+                onSelect={handleSelect}
+                placeholder="Buscar ciudades"
+              >
+                {data.length > 0 ? data.map((item, index) => {          
+                  return(
+                    <StyledOption label={item.label} key={`${item.value}-${index}`} value={item.geonameid}>
+                      <ItemContainer>
+                        <Country>
+                          {item.label.country}
+                        </Country>
+                        <Name>
+                          {item.label.name}
+                        </Name>
+                        <Subcountry>
+                          {item.label.subcountry}
+                        </Subcountry>
+                      </ItemContainer>
+                    </StyledOption>
+                  )
+                }) : <StyledOption disabled key={`empty`}>Vacio, prueba buscando un pais, estado o ciudad</StyledOption>}
+              </Select>
+            </Form.Item>
+          )}  
 
-                <Form.Item>
-                  <Button className="btn-save" loading={submiting} type="primary" htmlType="submit">
-                    Guardar
-                  </Button>
-                </Form.Item>
-              </>
-            )
-          }
-        </Form>
+          <Form.Item>
+            <Button size="large" shape="round" className="btn-save" loading={submiting} type="primary" htmlType="submit">
+              Guardar
+            </Button>
+          </Form.Item>
+           
+        </StyledForm>
         <ImageContainer>
           <img src={Image} alt="just-a-decorative-image" />
         </ImageContainer>
