@@ -101,9 +101,9 @@ const Loading = styled.div`
 `;
 
 const CustomTag = props => {
-  const {label} = props;
+  const {label, closable, onClose} = props;
   return (
-    <TagContainer closable={props.closable} onClick={props.onClose}>
+    <TagContainer closable={closable} onClick={onClose}>
       <Country>
         {label.country}
       </Country>
@@ -118,10 +118,15 @@ const CustomTag = props => {
 }
 
 const App = () => {
-
+  
   const [initialLoading, setInitialLoading] = useState(false);
   const [initialCities, setInitialCities] = useState([]);
+  const [chosenOptions, setChosenOptions] = useState([]);
 
+  const [data, setData] = useState([]);
+  const [fetching, setFetching] = useState(false);
+  const [submiting, setSubmiting] = useState(false);
+  
   const loadInitial = async () => {
     try {
       setInitialLoading(true);
@@ -142,13 +147,20 @@ const App = () => {
           message: 'Error',
           description: 'Una ciudad o varias no se han cargado correctamente',
         });
-        // let's reject this errors
+        // let's trash this errors
         const cleanResponse = R.reject(R.has("error"), responseJson)
         const initialMutated = cleanResponse.map(item => ({
           label: item,
           value: item.geonameid
         }));
+
+        // set this initial cities for selects' tag render
         setInitialCities(R.concat(initialMutated, initialCities))
+
+        // set already chosen options
+        const alreadyChosen = R.zipObj(mutatedResponse, R.repeat(true, mutatedResponse.length))
+        setChosenOptions(alreadyChosen);
+
         setInitialLoading(false);
       })
     } catch(error) {
@@ -160,13 +172,9 @@ const App = () => {
       });
     }
   }
-  
-  const [data, setData] = useState([]);
-  const [fetching, setFetching] = useState(false);
-  const [submiting, setSubmiting] = useState(false);
 
   useEffect(() => {
-    loadInitial()
+    loadInitial();
   }, [])
 
   const loadOptions = async search => {
@@ -195,29 +203,11 @@ const App = () => {
   }
 
 
-  const onFinish = async formData => {
-    console.log({formData})
-    // just taking the values from the "value" key (geonameid in this case) and create new list
-    const justValues = R.pluck("value",formData.city);
-    // convertion to string
-    console.log({justValues})
-    const convertedToString = R.map(item => !R.is(String, item) ? R.toString(item) : item, justValues);
-    console.log({convertedToString})
-
-    // then I create a new object making this strings as keys and assign true as its value for each element
-    const finalResult = R.zipObj(convertedToString, R.repeat(true, convertedToString.length))
-    // console.log({dataObject})
-    // const finalResult = R.toString(dataObject);
-
-    console.log("el final", finalResult)
-
+  const onFinish = async () => {
     try {
       setSubmiting(true);
-      const response = await fetch("http://localhost:3030/preferences/cities", {method: "PATCH", body: JSON.stringify(finalResult),  headers: {"Content-type": "application/json"}})
+      const response = await fetch("http://localhost:3030/preferences/cities", {method: "PATCH", body: JSON.stringify(chosenOptions),  headers: {"Content-type": "application/json"}})
       setSubmiting(false);      
-      // const data = await response.json();
-      await console.log({response})
-      // console.log({data})
 
       await response.ok ?
       notification.success({
@@ -229,7 +219,6 @@ const App = () => {
         message: 'Error',
         description: 'Los cambios no se han guardado, intente nuevamente.',
       });
-      // return data;
     } catch(error) {
       setSubmiting(false);
       console.error(error);
@@ -242,18 +231,24 @@ const App = () => {
 
   }
 
+  const handleDeselect = i => {
+    const id = R.view(R.lensProp("value"),i)
+    console.log({id})
+    // I check where this id is and change its value to false
+    const result = R.set(R.lensProp(id), false, chosenOptions)
+    console.log({result})
+    setChosenOptions(result)
+  }
+
+  const handleSelect = i => {
+    const id = R.view(R.lensProp("value"),i)
+    console.log({id})
+    setChosenOptions(R.assoc(id, true, chosenOptions))
+  }
   
 
   return (
     <div className="App">
-     <button onClick={() => console.log(data)}>
-       la data
-     </button>
-     <button onClick={() => console.log(initialCities)}>
-       initial
-     </button>
-
-     
      <GlobalStyle />
      {initialLoading ? (
           <Loading>
@@ -271,10 +266,7 @@ const App = () => {
               name="select-city"
               onFinish={onFinish}
             >
-              <Form.Item
-                name="city"
-                rules={[{ required: true, message: 'Debe seleccionar al menos una opción' }]}
-              >
+              <Form.Item name="city">
                 <Select
                   mode="multiple"
                   filterOption={false}
@@ -285,6 +277,8 @@ const App = () => {
                   optionLabelProp="label"
                   tagRender={CustomTag}
                   defaultValue={initialCities}
+                  onDeselect={handleDeselect}
+                  onSelect={handleSelect}
                 >
                   {data.length > 0 ? data.map((item, index) => {          
                     return(
