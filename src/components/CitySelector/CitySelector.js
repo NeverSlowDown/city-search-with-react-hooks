@@ -4,6 +4,7 @@ import styled, {createGlobalStyle} from "styled-components";
 import {Select, Spin, notification, Form, Button} from "antd";
 import debounce from "lodash.debounce";
 import Image from "../../assets/image.png";
+import { PATCH_CONFIG, api } from '../../utils/api';
 
 const {Option} = Select;
 
@@ -278,7 +279,7 @@ const CitySelector = () => {
   const loadInitial = async () => {
     try {
       setInitialLoading(true);
-      const response = await fetch("http://localhost:3030/preferences/cities")
+      const response = await fetch(api.preferences.cities)
       const responseJSON = await response.json();
       console.log({responseJSON});
 
@@ -286,7 +287,7 @@ const CitySelector = () => {
       const mutatedResponse = R.reject(R.isNil, responseJSON.data);
       console.log({mutatedResponse});
       
-      await Promise.all(mutatedResponse.map(item=>fetch(`http://localhost:3030/cities/${item}`)))
+      await Promise.all(mutatedResponse.map(item=>fetch(api.cities.id(item))))
       .then(async responses =>
         await Promise.all(responses.map(res => res.json()))
       ).then(responseJson => {
@@ -327,11 +328,8 @@ const CitySelector = () => {
 
   const loadOptions = async search => {
     try {
-      const query = search ? `/cities/?filter=${search}&limit=10` : `/cities/?limit=10`;
-      console.log({query});
-      
       setFetching(true);
-      const response = await fetch(query);
+      const response = await fetch(api.cities.filter(search));
       const responseJSON = await response.json();
       const data = responseJSON.data.map(item => ({
         label: item,
@@ -354,7 +352,7 @@ const CitySelector = () => {
   const onFinish = async () => {
     try {
       setSubmiting(true);
-      const response = await fetch("http://localhost:3030/preferences/cities", {method: "PATCH", body: JSON.stringify(chosenOptions),  headers: {"Content-type": "application/json"}})
+      const response = await fetch(api.preferences.cities, PATCH_CONFIG(chosenOptions))
       setSubmiting(false);      
 
       await response.ok ?
