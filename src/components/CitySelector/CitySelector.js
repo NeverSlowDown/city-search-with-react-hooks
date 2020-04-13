@@ -28,7 +28,9 @@ const GlobalStyle = createGlobalStyle`
     }
   }
   .ant-select-selector {
+    padding-left: 0 !important;
     > span {
+      min-width: 100px;
       display: flex;
     }
   }
@@ -219,11 +221,9 @@ const CitySelector = () => {
       setInitialLoading(true);
       const response = await fetch(api.preferences.cities)
       const responseJSON = await response.json();
-      console.log({responseJSON});
 
       // I see that there is some null stuff coming from this GET, let's remove it
       const mutatedResponse = R.reject(R.isNil, responseJSON.data);
-      console.log({mutatedResponse});
       
       await Promise.all(mutatedResponse.map(item=>fetch(api.cities.id(item))))
       .then(async responses =>
@@ -273,7 +273,7 @@ const CitySelector = () => {
         label: item,
         value: item.geonameid
       }));
-      await setData(data);
+      setData(data);
       setFetching(false);
     }
     catch(error) {
@@ -306,7 +306,6 @@ const CitySelector = () => {
     } catch(error) {
       setSubmiting(false);
       console.error(error);
-      console.log({data})
       notification.error({
         message: 'Error',
         description: 'Los cambios no se han guardado, intente nuevamente.',
@@ -317,16 +316,13 @@ const CitySelector = () => {
 
   const handleDeselect = i => {
     const id = R.view(R.lensProp("value"),i)
-    console.log({id})
     // I check where this id is and change its value to false
     const result = R.set(R.lensProp(id), false, chosenOptions)
-    console.log({result})
     setChosenOptions(result)
   }
 
   const handleSelect = i => {
     const id = R.view(R.lensProp("value"),i)
-    console.log({id})
     setChosenOptions(R.assoc(id, true, chosenOptions))
   }
   
@@ -341,7 +337,7 @@ const CitySelector = () => {
           initialLoading={initialLoading}
         >
           {!initialLoading && (
-            <Form.Item className="city-input" name="city">
+            <Form.Item className="city-input">
               {fetching && (
                   <Loading absolute>
                     <Spin size="small" />
